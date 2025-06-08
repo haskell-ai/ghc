@@ -1,0 +1,59 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - '*'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  ci:
+    name: ci
+    runs-on: ubuntu-24.04
+    steps:
+
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: checkout-submodules
+        run: |
+          git submodule update --init --depth=1 --jobs=32
+
+      - name: build
+        run: |
+          podman run \
+            --entrypoint /workspace/ghc/.codex/build.sh \
+            --network host \
+            --rm \
+            --tmpfs /tmp:exec \
+            --volume $PWD:/workspace/ghc \
+            --workdir /workspace/ghc \
+            ghcr.io/openai/codex-universal
+
+      - name: cleanup-before-test
+        run: |
+          git clean -xdf --exclude=codex-cache.tar.zst
+          git submodule foreach git clean -xdf
+
+      - name: test
+        run: |
+          podman run \
+            --entrypoint /workspace/ghc/.codex/test.sh \
+            --network host \
+            --rm \
+            --tmpfs /tmp:exec \
+            --volume $PWD:/workspace/ghc \
+            --workdir /workspace/ghc \
+            ghcr.io/openai/codex-universal
+
+      - name: upload-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete --cleanup-tag --yes lkgr-${{ github.ref_name }} || true
+          gh release create --prerelease lkgr-${{ github.ref_name }} codex-cache.tar.zst
+          gh run list --branch ${{ github.ref_name }} --status completed --json databaseId --jq '.[].databaseId' | xargs -r -n1 gh run delete
