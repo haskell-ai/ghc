@@ -5,6 +5,7 @@ import qualified Data.Set as Set
 import Expression
 import Flavour
 import Oracles.Flag
+import Packages
 import {-# SOURCE #-} Settings.Default
 
 -- Please update doc/flavours.md when changing this file.
@@ -20,10 +21,10 @@ ghcInGhciFlavour = defaultFlavour
     }
 
 ghciArgs :: Args
-ghciArgs = sourceArgs SourceArgs
+ghciArgs = (sourceArgs SourceArgs
     { hsDefault  = mconcat $
         [ pure ["-O0", "-H64m"]
         ]
     , hsLibrary  = mempty
     , hsCompiler = mempty
-    , hsGhc = mempty }
+    , hsGhc = mempty }) <> (package ghci ? builder (Cabal Flags) ? arg "internal-interpreter")
