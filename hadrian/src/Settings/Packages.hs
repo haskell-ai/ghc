@@ -157,7 +157,7 @@ packageArgs = do
             builder (Cabal Setup) ? cabalExtraDirs ffiIncludeDir ffiLibraryDir
           , builder (Cabal Flags) ? mconcat
             [ ifM stage0
-                (andM [cross, bootCross] `cabalFlag` "internal-interpreter")
+                (andM [cross, bootCross] ? arg "internal-interpreter")
                 (arg "internal-interpreter")
             , stage0 `cabalFlag` "bootstrap"
             ]
