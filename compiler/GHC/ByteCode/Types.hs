@@ -20,6 +20,7 @@ module GHC.ByteCode.Types
   , AddrEnv, AddrPtr(..)
   , CgBreakInfo(..)
   , ModBreaks (..), BreakIndex
+  , SerializedModBreaks(..)
   , CCostCentre
   , FlatBag, sizeFlatBag, fromSmallArray, elemsFlatBag
   ) where
@@ -51,6 +52,7 @@ import GHC.Cmm.Expr ( GlobalRegSet, emptyRegSet, regSetToList )
 import GHC.Iface.Syntax
 import Language.Haskell.Syntax.Module.Name (ModuleName)
 import GHC.Unit.Types (UnitId(..))
+import GHC.Utils.Binary
 
 -- -----------------------------------------------------------------------------
 -- Compiled Byte Code
@@ -216,9 +218,22 @@ data CgBreakInfo
    = CgBreakInfo
    { cgb_tyvars :: ![IfaceTvBndr] -- ^ Type variables in scope at the breakpoint
    , cgb_vars   :: ![Maybe (IfaceIdBndr, Word)]
-   , cgb_resty  :: !IfaceType
-   }
+  , cgb_resty  :: !IfaceType
+  }
 -- See Note [Syncing breakpoint info] in GHC.Runtime.Eval
+
+instance Binary CgBreakInfo where
+  put_ bh CgBreakInfo{..} = do
+    put_ bh cgb_tyvars
+    let vars' = map (fmap (fmap fromIntegral)) cgb_vars :: [Maybe (IfaceIdBndr, Word64)]
+    put_ bh vars'
+    put_ bh cgb_resty
+  get bh = do
+    cgb_tyvars <- get bh
+    vars' <- get bh :: IO [Maybe (IfaceIdBndr, Word64)]
+    let cgb_vars = map (fmap (fmap fromIntegral)) vars'
+    cgb_resty <- get bh
+    pure CgBreakInfo{..}
 
 seqCgBreakInfo :: CgBreakInfo -> ()
 seqCgBreakInfo CgBreakInfo{..} =
@@ -269,6 +284,22 @@ data ModBreaks
         -- ^ The 'UnitId' of the 'ModuleName'
    }
 
+-- | Persistent subset of 'ModBreaks' used for serialization.
+data SerializedModBreaks = SerializedModBreaks
+  { smb_locs :: !(Array BreakIndex SrcSpan)
+    -- ^ Breakpoint source spans
+  , smb_vars :: !(Array BreakIndex [OccName])
+    -- ^ Free variables for each breakpoint
+  , smb_decls :: !(Array BreakIndex [String])
+    -- ^ Declaration path for each breakpoint
+  , smb_breakInfo :: !(IntMap CgBreakInfo)
+    -- ^ Breakpoint info from the bytecode generator
+  , smb_module :: !ModuleName
+    -- ^ Module name
+  , smb_module_unitid :: !UnitId
+    -- ^ Unit identifier
+  }
+
 seqModBreaks :: ModBreaks -> ()
 seqModBreaks ModBreaks{..} =
   rnf modBreaks_flags `seq`
@@ -288,3 +319,22 @@ The breakpoint is in the function called "baz" that is declared in a `let`
 or `where` clause of a declaration called "bar", which itself is declared
 in a `let` or `where` clause of the top-level function called "foo".
 -}
+
+instance Binary SerializedModBreaks where
+  put_ bh SerializedModBreaks{..} = do
+    let locs = listArray (bounds smb_locs) (map BinSrcSpan (elems smb_locs))
+    put_ bh locs
+    put_ bh smb_vars
+    put_ bh smb_decls
+    put_ bh smb_breakInfo
+    put_ bh smb_module
+    put_ bh smb_module_unitid
+  get bh = do
+    locs <- get bh
+    let smb_locs = listArray (bounds locs) (map unBinSrcSpan (elems locs))
+    smb_vars <- get bh
+    smb_decls <- get bh
+    smb_breakInfo <- get bh
+    smb_module <- get bh
+    smb_module_unitid <- get bh
+    return SerializedModBreaks{..}
