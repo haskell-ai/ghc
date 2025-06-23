@@ -248,7 +248,7 @@ data CCostCentre
 -- | All the information about the breakpoints for a module
 data ModBreaks
    = ModBreaks
-   { modBreaks_flags :: !(ForeignRef BreakArray)
+   { modBreaks_flags :: ForeignRef BreakArray
         -- ^ The array of flags, one per breakpoint,
         -- indicating which breakpoints are enabled.
    , modBreaks_locs :: !(Array BreakIndex SrcSpan)
@@ -258,9 +258,10 @@ data ModBreaks
    , modBreaks_decls :: !(Array BreakIndex [String])
         -- ^ An array giving the names of the declarations enclosing each breakpoint.
         -- See Note [Field modBreaks_decls]
-   , modBreaks_ccs :: !(Array BreakIndex (RemotePtr CostCentre))
+   , modBreaks_ccs_proto :: [(String, String)]
+   , modBreaks_ccs :: Array BreakIndex (RemotePtr CostCentre)
         -- ^ Array pointing to cost centre for each breakpoint
-   , modBreaks_breakInfo :: IntMap CgBreakInfo
+   , modBreaks_breakInfo :: !(IntMap CgBreakInfo)
         -- ^ info about each breakpoint from the bytecode generator
    , modBreaks_module :: !Module
         -- ^ info about the module in which we are setting the breakpoint
