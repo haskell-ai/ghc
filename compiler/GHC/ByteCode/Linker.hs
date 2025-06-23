@@ -96,6 +96,13 @@ lookupLiteral interp pkgs_loaded le ptr = case ptr of
   BCONPtrFFIInfo (FFIInfo {..}) -> do
     RemotePtr p <- interpCmd interp $ PrepFFI ffiInfoArgs ffiInfoRet
     pure $ fromIntegral p
+  BCONPtrCostCentre tick_mod tick_no
+    | interpreterProfiled interp -> case lookupModuleEnv (ccs_env le) tick_mod of
+        Just cc_arr -> case cc_arr ! tick_no of
+          RemotePtr p -> pure $ fromIntegral p
+        _ -> panic $ "lookupLiteral BCONPtrCostCentre" ++ show (moduleName tick_mod)
+    | otherwise -> case toRemotePtr nullPtr of
+          RemotePtr p -> pure $ fromIntegral p
 
 lookupStaticPtr :: Interp -> FastString -> IO (Ptr ())
 lookupStaticPtr interp addr_of_label_string = do

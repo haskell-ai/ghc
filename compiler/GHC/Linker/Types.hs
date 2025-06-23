@@ -50,11 +50,12 @@ where
 
 import GHC.Prelude
 import GHC.Unit                ( UnitId, Module )
-import GHC.ByteCode.Types      ( ItblEnv, AddrEnv, CompiledByteCode )
+import GHC.ByteCode.Types
 import GHCi.BreakArray
 import GHCi.RemoteTypes
 import GHCi.Message            ( LoadedDLL )
 
+import GHC.Stack.CCS
 import GHC.Types.Name.Env      ( NameEnv, emptyNameEnv, extendNameEnvList, filterNameEnv )
 import GHC.Types.Name          ( Name )
 import GHC.Types.SptEntry
@@ -62,6 +63,7 @@ import GHC.Types.SptEntry
 import GHC.Utils.Outputable
 
 import Control.Concurrent.MVar
+import Data.Array
 import Data.Time               ( UTCTime )
 import GHC.Unit.Module.Env
 import GHC.Types.Unique.DSet
@@ -184,6 +186,8 @@ data LinkerEnv = LinkerEnv
       -- see Note [Generating code for top-level string literal bindings] in GHC.StgToByteCode.
 
   , breakarray_env :: !(ModuleEnv (ForeignRef BreakArray))
+
+  , ccs_env :: !(ModuleEnv (Array BreakIndex (RemotePtr CostCentre)))
   }
 
 filterLinkerEnv :: (Name -> Bool) -> LinkerEnv -> LinkerEnv

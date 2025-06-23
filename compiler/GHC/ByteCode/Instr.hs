@@ -15,7 +15,6 @@ import GHC.Prelude
 
 import GHC.ByteCode.Types
 import GHC.Cmm.Type (Width)
-import GHCi.RemoteTypes
 import GHC.StgToCmm.Layout     ( ArgRep(..) )
 import GHC.Utils.Outputable
 import GHC.Unit.Module
@@ -33,7 +32,6 @@ import Data.Word
 import Data.ByteString (ByteString)
 #endif
 
-import GHC.Stack.CCS (CostCentre)
 
 import GHC.Stg.Syntax
 
@@ -265,7 +263,6 @@ data BCInstr
                       !Word16                -- breakpoint tick index
                       !Module                -- breakpoint info module
                       !Word16                -- breakpoint info index
-                      (RemotePtr CostCentre)
 
 #if MIN_VERSION_rts(1,0,3)
    -- | A "meta"-instruction for recording the name of a BCO for debugging purposes.
@@ -457,7 +454,7 @@ instance Outputable BCInstr where
    ppr ENTER                 = text "ENTER"
    ppr (RETURN pk)           = text "RETURN  " <+> ppr pk
    ppr (RETURN_TUPLE)        = text "RETURN_TUPLE"
-   ppr (BRK_FUN _tick_mod tickx _info_mod infox _)
+   ppr (BRK_FUN _tick_mod tickx _info_mod infox)
                              = text "BRK_FUN" <+> text "<breakarray>"
                                <+> text "<tick_module>" <+> text "<tick_module_unitid>" <+> ppr tickx
                                <+> text "<info_module>" <+> text "<info_module_unitid>" <+> ppr infox

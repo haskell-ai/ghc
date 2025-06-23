@@ -46,7 +46,6 @@ import Data.Array
 import Data.ByteString (ByteString)
 import Data.IntMap (IntMap)
 import qualified GHC.Exts.Heap as Heap
-import GHC.Stack.CCS
 import GHC.Cmm.Expr ( GlobalRegSet, emptyRegSet, regSetToList )
 import GHC.Iface.Syntax
 import GHC.Unit.Module
@@ -203,6 +202,7 @@ data BCONPtr
   | BCONPtrFS    !FastString
   -- | A libffi ffi_cif function prototype.
   | BCONPtrFFIInfo !FFIInfo
+  | BCONPtrCostCentre !Module !BreakIndex
 
 instance NFData BCONPtr where
   rnf x = x `seq` ()
@@ -258,8 +258,7 @@ data ModBreaks
    , modBreaks_decls :: !(Array BreakIndex [String])
         -- ^ An array giving the names of the declarations enclosing each breakpoint.
         -- See Note [Field modBreaks_decls]
-   , modBreaks_ccs_proto :: [(String, String)]
-   , modBreaks_ccs :: Array BreakIndex (RemotePtr CostCentre)
+   , modBreaks_ccs :: !(Array BreakIndex (String, String))
         -- ^ Array pointing to cost centre for each breakpoint
    , modBreaks_breakInfo :: !(IntMap CgBreakInfo)
         -- ^ info about each breakpoint from the bytecode generator

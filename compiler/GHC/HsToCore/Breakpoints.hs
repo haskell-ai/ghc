@@ -8,7 +8,7 @@ module GHC.HsToCore.Breakpoints
 import GHC.Prelude
 
 import qualified GHC.Runtime.Interpreter as GHCi
-import GHC.Runtime.Interpreter.Types
+import GHC.Runtime.Interpreter
 import GHC.ByteCode.Types
 import GHC.Unit
 
@@ -38,14 +38,15 @@ mkModBreaks interp mod extendedMixEntries
            locsTicks  = listArray (0,count-1) [ tick_loc  t | t <- entries ]
            varsTicks  = listArray (0,count-1) [ tick_ids  t | t <- entries ]
            declsTicks = listArray (0,count-1) [ tick_path t | t <- entries ]
-           ccsProto   = [ (concat $ intersperse "." $ tick_path t, renderWithContext defaultSDocContext $ ppr $ tick_loc t) | t <- entries ]
+           ccs
+             | interpreterProfiled interp = listArray (0,count-1) [ (concat $ intersperse "." $ tick_path t, renderWithContext defaultSDocContext $ ppr $ tick_loc t) | t <- entries ]
+             | otherwise = listArray (0,-1) []
     hydrateModBreaks interp $ ModBreaks
       { modBreaks_flags  = undefined
       , modBreaks_locs   = locsTicks
       , modBreaks_vars   = varsTicks
       , modBreaks_decls  = declsTicks
-      , modBreaks_ccs_proto = ccsProto
-      , modBreaks_ccs    = undefined
+      , modBreaks_ccs    = ccs
       , modBreaks_breakInfo = IntMap.empty
       , modBreaks_module = mod
       }
@@ -54,9 +55,4 @@ hydrateModBreaks :: Interp -> ModBreaks -> IO ModBreaks
 hydrateModBreaks interp ModBreaks {..} = do
   let count = numElements modBreaks_locs
   modBreaks_flags <- GHCi.newBreakArray interp count
-  modBreaks_ccs <- if GHCi.interpreterProfiled interp
-      then do
-        ccs <- GHCi.mkCostCentres interp (moduleNameString $ moduleName modBreaks_module) modBreaks_ccs_proto
-        pure $ listArray (0,count-1) ccs
-      else pure $ listArray (0,-1) []
   pure ModBreaks {..}
