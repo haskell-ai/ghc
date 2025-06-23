@@ -842,12 +842,12 @@ assembleI platform i = case i of
     W8                   -> emit_ bci_OP_INDEX_ADDR_08 []
     _                    -> unsupported_width
 
-  BRK_FUN arr tick_mod tick_mod_id tickx info_mod info_mod_id infox cc ->
+  BRK_FUN arr tick_mod tickx info_mod infox cc ->
                               do p1 <- ptr (BCOPtrBreakArray arr)
-                                 tick_addr <- lit1 $ BCONPtrFS $ moduleNameFS tick_mod
-                                 info_addr <- lit1 $ BCONPtrFS $ moduleNameFS info_mod
-                                 tick_unitid_addr <- lit1 $ BCONPtrFS $ unitIdFS tick_mod_id
-                                 info_unitid_addr <- lit1 $ BCONPtrFS $ unitIdFS info_mod_id
+                                 tick_addr <- lit1 $ BCONPtrFS $ moduleNameFS $ moduleName tick_mod
+                                 info_addr <- lit1 $ BCONPtrFS $ moduleNameFS $ moduleName info_mod
+                                 tick_unitid_addr <- lit1 $ BCONPtrFS $ unitIdFS $ moduleUnitId $ tick_mod
+                                 info_unitid_addr <- lit1 $ BCONPtrFS $ unitIdFS $ moduleUnitId $ info_mod
                                  np <- addr cc
                                  emit_ bci_BRK_FUN [ Op p1
                                                   , Op tick_addr, Op info_addr

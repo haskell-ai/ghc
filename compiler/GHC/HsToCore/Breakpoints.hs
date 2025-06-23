@@ -46,8 +46,7 @@ mkModBreaks interp mod extendedMixEntries
       , modBreaks_decls  = declsTicks
       , modBreaks_ccs    = ccs
       , modBreaks_breakInfo = IntMap.empty
-      , modBreaks_module = moduleName mod
-      , modBreaks_module_unitid = toUnitId $ moduleUnit mod
+      , modBreaks_module = mod
       }
 
 mkCCSArray

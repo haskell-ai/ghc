@@ -18,7 +18,7 @@ import GHC.Cmm.Type (Width)
 import GHCi.RemoteTypes
 import GHC.StgToCmm.Layout     ( ArgRep(..) )
 import GHC.Utils.Outputable
-import GHC.Unit.Types (UnitId)
+import GHC.Unit.Module
 import GHC.Types.Name
 import GHC.Types.Literal
 import GHC.Types.Unique
@@ -37,7 +37,6 @@ import GHC.Stack.CCS (CostCentre)
 
 import GHC.Stg.Syntax
 import GHCi.BreakArray (BreakArray)
-import Language.Haskell.Syntax.Module.Name (ModuleName)
 
 -- ----------------------------------------------------------------------------
 -- Bytecode instructions
@@ -264,11 +263,9 @@ data BCInstr
 
    -- Breakpoints
    | BRK_FUN          (ForeignRef BreakArray)
-                      !ModuleName            -- breakpoint tick module
-                      !UnitId                -- breakpoint tick module unit id
+                      !Module                -- breakpoint tick module
                       !Word16                -- breakpoint tick index
-                      !ModuleName            -- breakpoint info module
-                      !UnitId                -- breakpoint info module unit id
+                      !Module                -- breakpoint info module
                       !Word16                -- breakpoint info index
                       (RemotePtr CostCentre)
 
@@ -462,7 +459,7 @@ instance Outputable BCInstr where
    ppr ENTER                 = text "ENTER"
    ppr (RETURN pk)           = text "RETURN  " <+> ppr pk
    ppr (RETURN_TUPLE)        = text "RETURN_TUPLE"
-   ppr (BRK_FUN _ _tick_mod _tick_mod_id tickx _info_mod _info_mod_id infox _)
+   ppr (BRK_FUN _ _tick_mod tickx _info_mod infox _)
                              = text "BRK_FUN" <+> text "<breakarray>"
                                <+> text "<tick_module>" <+> text "<tick_module_unitid>" <+> ppr tickx
                                <+> text "<info_module>" <+> text "<info_module_unitid>" <+> ppr infox
