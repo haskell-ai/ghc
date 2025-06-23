@@ -36,7 +36,6 @@ import Data.ByteString (ByteString)
 import GHC.Stack.CCS (CostCentre)
 
 import GHC.Stg.Syntax
-import GHCi.BreakArray (BreakArray)
 
 -- ----------------------------------------------------------------------------
 -- Bytecode instructions
@@ -262,8 +261,7 @@ data BCInstr
                    -- Note [unboxed tuple bytecodes and tuple_BCO] in GHC.StgToByteCode
 
    -- Breakpoints
-   | BRK_FUN          (ForeignRef BreakArray)
-                      !Module                -- breakpoint tick module
+   | BRK_FUN          !Module                -- breakpoint tick module
                       !Word16                -- breakpoint tick index
                       !Module                -- breakpoint info module
                       !Word16                -- breakpoint info index
@@ -459,7 +457,7 @@ instance Outputable BCInstr where
    ppr ENTER                 = text "ENTER"
    ppr (RETURN pk)           = text "RETURN  " <+> ppr pk
    ppr (RETURN_TUPLE)        = text "RETURN_TUPLE"
-   ppr (BRK_FUN _ _tick_mod tickx _info_mod infox _)
+   ppr (BRK_FUN _tick_mod tickx _info_mod infox _)
                              = text "BRK_FUN" <+> text "<breakarray>"
                                <+> text "<tick_module>" <+> text "<tick_module_unitid>" <+> ppr tickx
                                <+> text "<info_module>" <+> text "<info_module_unitid>" <+> ppr infox

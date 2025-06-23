@@ -28,6 +28,7 @@ import GHCi.ResolvedBCO
 import GHC.Builtin.PrimOps
 import GHC.Builtin.PrimOps.Ids
 
+import GHC.Unit.Module.Env
 import GHC.Unit.Types
 
 import GHC.Data.FastString
@@ -175,8 +176,11 @@ resolvePtr interp pkgs_loaded le bco_ix ptr = case ptr of
   BCOPtrBCO bco
     -> ResolvedBCOPtrBCO <$> linkBCO interp pkgs_loaded le bco_ix bco
 
-  BCOPtrBreakArray breakarray
-    -> withForeignRef breakarray $ \ba -> return (ResolvedBCOPtrBreakArray ba)
+  BCOPtrBreakArray tick_mod
+    -> do
+      case lookupModuleEnv (breakarray_env le) tick_mod of
+        Just breakarray -> withForeignRef breakarray $ \ba -> return (ResolvedBCOPtrBreakArray ba)
+        _ -> panic $ "NO BREAKARRAY FOR " ++ show (moduleName tick_mod)
 
 -- | Look up the address of a Haskell symbol in the currently
 -- loaded units.

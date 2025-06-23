@@ -51,7 +51,8 @@ where
 import GHC.Prelude
 import GHC.Unit                ( UnitId, Module )
 import GHC.ByteCode.Types      ( ItblEnv, AddrEnv, CompiledByteCode )
-import GHCi.RemoteTypes        ( ForeignHValue, RemotePtr )
+import GHCi.BreakArray
+import GHCi.RemoteTypes
 import GHCi.Message            ( LoadedDLL )
 
 import GHC.Types.Name.Env      ( NameEnv, emptyNameEnv, extendNameEnvList, filterNameEnv )
@@ -181,10 +182,12 @@ data LinkerEnv = LinkerEnv
   , addr_env    :: !AddrEnv
       -- ^ Like 'closure_env' and 'itbl_env', but for top-level 'Addr#' literals,
       -- see Note [Generating code for top-level string literal bindings] in GHC.StgToByteCode.
+
+  , breakarray_env :: !(ModuleEnv (ForeignRef BreakArray))
   }
 
 filterLinkerEnv :: (Name -> Bool) -> LinkerEnv -> LinkerEnv
-filterLinkerEnv f le = LinkerEnv
+filterLinkerEnv f le = le
   { closure_env = filterNameEnv (f . fst) (closure_env le)
   , itbl_env    = filterNameEnv (f . fst) (itbl_env le)
   , addr_env    = filterNameEnv (f . fst) (addr_env le)

@@ -182,7 +182,7 @@ data BCOPtr
   = BCOPtrName   !Name
   | BCOPtrPrimOp !PrimOp
   | BCOPtrBCO    !UnlinkedBCO
-  | BCOPtrBreakArray (ForeignRef BreakArray)
+  | BCOPtrBreakArray !Module
     -- ^ a pointer to a breakpoint's module's BreakArray in GHCi's memory
 
 instance NFData BCOPtr where

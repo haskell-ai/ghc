@@ -52,6 +52,7 @@ import GHC.Driver.Config.Finder
 import GHC.Tc.Utils.Monad
 
 import GHC.Runtime.Interpreter
+import GHCi.BreakArray
 import GHCi.RemoteTypes
 import GHC.Iface.Load
 import GHCi.Message (ConInfoTable(..), LoadedDLL)
@@ -174,6 +175,7 @@ emptyLoaderState = LoaderState
      { closure_env = emptyNameEnv
      , itbl_env    = emptyNameEnv
      , addr_env    = emptyNameEnv
+     , breakarray_env = emptyModuleEnv
      }
    , pkgs_loaded = init_pkgs
    , bcos_loaded = emptyModuleEnv
@@ -691,8 +693,10 @@ loadDecls interp hsc_env span linkable = do
           let le  = linker_env pls
           le2_itbl_env <- linkITbls interp (itbl_env le) (concat $ map bc_itbls cbcs)
           le2_addr_env <- foldlM (\env cbc -> allocateTopStrings interp (bc_strs cbc) env) (addr_env le) cbcs
+          le2_breakarray_env <- allocateBreakArrays interp (catMaybes $ map bc_breaks cbcs) (breakarray_env le)
           let le2 = le { itbl_env = le2_itbl_env
-                       , addr_env = le2_addr_env }
+                       , addr_env = le2_addr_env
+                       , breakarray_env = le2_breakarray_env }
 
           -- Link the necessary packages and linkables
           new_bindings <- linkSomeBCOs interp (pkgs_loaded pls) le2 cbcs
@@ -916,7 +920,8 @@ dynLinkBCOs interp pls bcos = do
             le1 = linker_env pls
         ie2 <- linkITbls interp (itbl_env le1) (concatMap bc_itbls cbcs)
         ae2 <- foldlM (\env cbc -> allocateTopStrings interp (bc_strs cbc) env) (addr_env le1) cbcs
-        let le2 = le1 { itbl_env = ie2, addr_env = ae2 }
+        be2 <- allocateBreakArrays interp (catMaybes $ map bc_breaks cbcs) (breakarray_env le1)
+        let le2 = le1 { itbl_env = ie2, addr_env = ae2, breakarray_env = be2 }
 
         names_and_refs <- linkSomeBCOs interp (pkgs_loaded pls) le2 cbcs
 
@@ -1632,3 +1637,6 @@ allocateTopStrings interp topStrings prev_env = do
   evaluate $ extendNameEnvList prev_env (zipWith mk_entry bndrs ptrs)
   where
     mk_entry nm ptr = (nm, (nm, AddrPtr ptr))
+
+allocateBreakArrays :: Interp -> [ModBreaks] -> ModuleEnv (ForeignRef BreakArray) -> IO (ModuleEnv (ForeignRef BreakArray))
+allocateBreakArrays _interp mbs be = foldlM (\be0 ModBreaks {..} -> evaluate $ extendModuleEnv be0 modBreaks_module modBreaks_flags) be mbs

@@ -842,8 +842,8 @@ assembleI platform i = case i of
     W8                   -> emit_ bci_OP_INDEX_ADDR_08 []
     _                    -> unsupported_width
 
-  BRK_FUN arr tick_mod tickx info_mod infox cc ->
-                              do p1 <- ptr (BCOPtrBreakArray arr)
+  BRK_FUN tick_mod tickx info_mod infox cc ->
+                              do p1 <- ptr $ BCOPtrBreakArray tick_mod
                                  tick_addr <- lit1 $ BCONPtrFS $ moduleNameFS $ moduleName tick_mod
                                  info_addr <- lit1 $ BCONPtrFS $ moduleNameFS $ moduleName info_mod
                                  tick_unitid_addr <- lit1 $ BCONPtrFS $ unitIdFS $ moduleUnitId $ tick_mod
